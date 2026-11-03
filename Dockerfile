@@ -15,8 +15,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY EntropyTest.java server.py /app/
 COPY templates/ /app/templates/
 
-# Compile the Java file during build time so it's ready to go
+# Compile the Java file during build time
 RUN javac EntropyTest.java
+
+# Create a non-root system user
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
+USER appuser
 
 EXPOSE 8080
 
