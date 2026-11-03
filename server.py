@@ -40,7 +40,6 @@ def format_crack_time(seconds):
 
 @app.after_request
 def add_security_headers(response):
-    """Inject robust security headers to protect against web vulnerabilities."""
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
@@ -62,17 +61,82 @@ def analyze():
             
         password = data["password"]
 
-        # Input Validation: Enforce type and length bounds
         if not isinstance(password, str) or len(password) > 128:
             return jsonify({"error": "Password must be a string under 128 characters."}), 400
 
-        # Sanitize control characters
         password = re.sub(r'[\r\n\x00-\x1f\x7f-\x9f]', '', password)
 
-        # Run Java program securely with a 2-second timeout guard
         try:
             completed = subprocess.run(
                 ["java", "EntropyTest"],
                 input=password + "\n",
                 cwd=BASE_DIR,
                 capture_output=True,
+                text=True,
+                timeout=2.0
+            )
+            stdout = completed.stdout
+            stderr = completed.stderr
+            returncode = completed.returncode
+        except subprocess.TimeoutExpired:
+            return jsonify({"error": "Processing timeout exceeded."}), 408
+
+        if returncode != 0:
+            return jsonify({"error": "Internal processing error"}), 500
+
+        lines = [line.strip() for line in stdout.strip().split("\n") if line.strip()]
+        if len(lines) < 7:
+            return jsonify({"error": "Invalid output format"}), 500
+
+        has_lower = lines[2].lower() == 'true'
+        has_upper = lines[3].lower() == 'true'
+        has_digit = lines[4].lower() == 'true'
+        has_symbol = lines[5].lower() == 'true'
+        length = int(lines[6])
+
+        zx_result = zxcvbn(password)
+        
+        score = zx_result['score'] * 25
+        if score > 100: 
+            score = 100
+
+        guesses = zx_result.get('guesses', 1)
+        entropy = math.log2(guesses) if guesses > 0 else 0.0
+
+        crack_times = zx_result.get('crack_times_seconds', {})
+        formatted_crack_times = {
+            "online": format_crack_time(crack_times.get('online_throttling_100_per_hour')),
+            "cpu": format_crack_time(crack_times.get('offline_slow_hashing_1e4_per_second')),
+            "gpu": format_crack_time(crack_times.get('offline_fast_hashing_1e10_per_second'))
+        }
+
+        feedback = zx_result.get('feedback', {})
+        warnings = []
+        if feedback.get('warning'):
+            warnings.append(f"⚠️ {feedback['warning']}")
+        for suggestion in feedback.get('suggestions', []):
+            warnings.append(f"💡 {suggestion}")
+
+        result = {
+            "score": score,
+            "entropy": round(entropy, 2),
+            "hasLower": has_lower,
+            "hasUpper": has_upper,
+            "hasDigit": has_digit,
+            "hasSymbol": has_symbol,
+            "length": length,
+            "crackTimes": formatted_crack_times,
+            "warnings": warnings
+        }
+        
+        password = None
+        return jsonify(result)
+
+    except Exception as e:
+        print(f"Error encountered during analysis: {str(e)}")
+        return jsonify({"error": "An internal error occurred."}), 500
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
+    
