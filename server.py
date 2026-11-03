@@ -69,35 +69,10 @@ def analyze():
         # Sanitize control characters
         password = re.sub(r'[\r\n\x00-\x1f\x7f-\x9f]', '', password)
 
-        # Run Java program for basic character flags & length
-        process = subprocess.Popen(
-            ["java", "EntropyTest"],
-            cwd=BASE_DIR,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-        
-        # Pass password via stdin with a timeout guard
+        # Run Java program securely with a 2-second timeout guard
         try:
-            stdout, stderr = process.communicate(input=password + "\n", timeout=2.0)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            return jsonify({"error": "Processing timeout exceeded."}), 408
-        
-        if process.returncode != 0:
-            return jsonify({"error": "Internal processing error"}), 500
-
-        lines = [line.strip() for line in stdout.strip().split("\n") if line.strip()]
-        if len(lines) < 7:
-            return jsonify({"error": "Invalid output format"}), 500
-
-        has_lower = lines[2].lower() == 'true'
-        has_upper = lines[3].lower() == 'true'
-        has_digit = lines[4].lower() == 'true'
-        has_symbol = lines[5].lower() == 'true'
-        length = int(lines[6])
-
-        # Smart Pattern & Dictionary Analysis (zxcvbn)
-        zx_result = zxcvbn
+            completed = subprocess.run(
+                ["java", "EntropyTest"],
+                input=password + "\n",
+                cwd=BASE_DIR,
+                capture_output=True,
