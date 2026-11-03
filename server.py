@@ -68,17 +68,20 @@ if not isinstance(password, str) or len(password) > 128:
 password = re.sub(r'[\r\n\x00-\x1f\x7f-\x9f]', '', password)
 
         # Run Java program for basic character flags & length
-        process = subprocess.Popen(
-            ["java", "EntropyTest"],
-            cwd=BASE_DIR,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-        
-        # Pass password via stdin (never store or log the raw password string)
-        stdout, stderr = process.communicate(input=password + "\n")
+        try:
+    process = subprocess.Popen(
+        ["java", "EntropyTest"],
+        cwd=BASE_DIR,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+    # Force process to kill itself if it takes longer than 2 seconds
+    stdout, stderr = process.communicate(input=password + "\n", timeout=2.0)
+except subprocess.TimeoutExpired:
+    process.kill()
+    return jsonify({"error": "Processing timeout exceeded."}), 408
         
         if process.returncode != 0:
             return jsonify({"error": "Internal processing error"}), 500
