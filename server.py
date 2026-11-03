@@ -61,9 +61,11 @@ def analyze():
             
         password = data["password"]
 
-        # Input Validation: Enforce type and length bounds
-        if not isinstance(password, str) or len(password) > 128:
-            return jsonify({"error": "Password must be a string under 128 characters."}), 400
+if not isinstance(password, str) or len(password) > 128:
+    return jsonify({"error": "Invalid password format."}), 400
+
+# Strip out dangerous control characters or newlines that could disrupt Java's Scanner
+password = re.sub(r'[\r\n\x00-\x1f\x7f-\x9f]', '', password)
 
         # Run Java program for basic character flags & length
         process = subprocess.Popen(
