@@ -3,92 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Password Entropy & Strength Test</title>
+    <title>Secure Password Entropy Analyzer</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-900 text-gray-100 flex items-center justify-center min-h-screen">
-    <div class="bg-gray-800 p-8 rounded-xl shadow-xl w-full max-w-md">
-        <h1 class="text-2xl font-bold mb-6 text-center">Password Entropy Analyzer</h1>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col items-center justify-between py-10 px-4">
+    
+    <!-- Main Container -->
+    <div class="w-full max-w-xl space-y-6">
         
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-2">Enter Password:</label>
-            <div class="flex gap-2">
-                <input type="password" id="passwordInput" placeholder="Type a password..." 
-                    class="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500">
-                <button id="testBtn" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 font-medium rounded-lg transition-colors cursor-pointer">
-                    Test
-                </button>
+        <!-- Header -->
+        <header class="text-center space-y-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full text-indigo-600 text-xs font-semibold uppercase tracking-wider">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                Secure Hybrid Architecture
             </div>
-        </div>
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Password Entropy Analyzer</h1>
+            <p class="text-sm text-slate-500 max-w-md mx-auto">Evaluate your password’s true resistance against modern brute-force and dictionary attacks.</p>
+        </header>
 
-        <div id="results" class="space-y-3 hidden">
-            <!-- Warnings Box for Specialized Tests -->
-            <div id="warningContainer" class="hidden bg-red-900/40 border border-red-500 p-3 rounded-lg text-sm text-red-300 space-y-1"></div>
-
-            <div class="flex justify-between bg-gray-700 p-3 rounded-lg">
-                <span>Strength Score:</span>
-                <span id="score" class="font-bold">0</span>
-            </div>
-            <div class="flex justify-between bg-gray-700 p-3 rounded-lg">
-                <span>Entropy (bits):</span>
-                <span id="entropy" class="font-bold">0</span>
-            </div>
-
-            <!-- Character Pool Badges -->
-            <div class="grid grid-cols-2 gap-2 text-sm">
-                <div id="hasLower" class="p-2 rounded bg-red-900/50 text-center">Lowercase</div>
-                <div id="hasUpper" class="p-2 rounded bg-red-900/50 text-center">Uppercase</div>
-                <div id="hasDigit" class="p-2 rounded bg-red-900/50 text-center">Numbers</div>
-                <div id="hasSymbol" class="p-2 rounded bg-red-900/50 text-center">Symbols</div>
-            </div>
-
-            <!-- Estimated Crack Times Card -->
-            <div class="bg-gray-700/50 p-4 rounded-lg mt-4 border border-gray-600">
-                <h3 class="text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">Estimated Time to Crack</h3>
-                <div class="space-y-2 text-sm">
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">Online Attack (Throttled):</span>
-                        <span id="crackOnline" class="font-medium text-amber-400">-</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">Desktop CPU (Standard):</span>
-                        <span id="crackCpu" class="font-medium text-amber-400">-</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">GPU Rig (Hashcat):</span>
-                        <span id="crackGpu" class="font-medium text-amber-400">-</span>
-                    </div>
+        <!-- Analyzer Card -->
+        <main class="bg-white border border-slate-200/80 shadow-xl shadow-slate-200/50 rounded-2xl p-6 sm:p-8 space-y-6">
+            
+            <!-- Input Area -->
+            <div class="space-y-2">
+                <label for="passwordInput" class="block text-sm font-semibold text-slate-700">Enter Password to Test:</label>
+                <div class="flex gap-2">
+                    <input type="password" id="passwordInput" placeholder="Type or paste a password..." 
+                        class="flex-1 px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm">
+                    <button id="testBtn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md shadow-indigo-200 transition-all cursor-pointer text-sm flex items-center justify-center">
+                        Test
+                    </button>
                 </div>
             </div>
-        </div>
+
+            <!-- Error Box -->
+            <div id="errorBox" class="hidden bg-rose-50 border border-rose-200 p-4 rounded-xl text-sm text-rose-700 flex items-start gap-3">
+                <svg class="w-5 h-5 text-rose-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <div id="errorText"></div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results" class="space-y-5 hidden animate-fade-in">
+                
+                <!-- Warnings Box -->
+                <div id="warningContainer" class="hidden bg-amber-50 border border-amber-200 p-4 rounded-xl text-sm text-amber-800 space-y-1"></div>
+
+                <!-- Core Metrics Grid -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col justify-between">
+                        <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Strength Score</span>
+                        <span id="score" class="text-2xl font-bold text-slate-900 mt-1">0 / 100</span>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col justify-between">
+                        <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Shannon Entropy</span>
+                        <span id="entropy" class="text-2xl font-bold text-slate-900 mt-1">0 bits</span>
+                    </div>
+                </div>
+
+                <!-- Character Pool Badges -->
+                <div class="space-y-2">
+                    <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Character Composition</span>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-medium">
+                        <div id="hasLower" class="p-2.5 rounded-lg text-center transition-colors">Lowercase</div>
+                        <div id="hasUpper" class="p-2.5 rounded-lg text-center transition-colors">Uppercase</div>
+                        <div id="hasDigit" class="p-2.5 rounded-lg text-center transition-colors">Numbers</div>
+                        <div id="hasSymbol" class="p-2.5 rounded-lg text-center transition-colors">Symbols</div>
+                    </div>
+                </div>
+
+                <!-- Estimated Crack Times Card -->
+                <div class="bg-slate-50/80 border border-slate-200 p-5 rounded-xl space-y-3">
+                    <h3 class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Estimated Time to Crack
+                    </h3>
+                    <div class="space-y-2 text-sm divide-y divide-slate-200/60">
+                        <div class="flex justify-between pt-1">
+                            <span class="text-slate-600">Online Attack (Throttled):</span>
+                            <span id="crackOnline" class="font-semibold text-slate-900">-</span>
+                        </div>
+                        <div class="flex justify-between pt-2">
+                            <span class="text-slate-600">Desktop CPU (Standard):</span>
+                            <span id="crackCpu" class="font-semibold text-slate-900">-</span>
+                        </div>
+                        <div class="flex justify-between pt-2">
+                            <span class="text-slate-600">GPU Rig (Hashcat):</span>
+                            <span id="crackGpu" class="font-semibold text-rose-600">-</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- Educational Section -->
+        <section class="bg-white border border-slate-200/80 shadow-sm rounded-2xl p-6 sm:p-8 space-y-4 text-slate-600 text-sm leading-relaxed">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" data-darkreader-inline-stroke="" style="--darkreader-inline-stroke: currentColor;" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                About This Project & Entropy
+            </h2>
+            <div class="space-y-3">
+                <p>
+                    <strong>What is Password Entropy?</strong> Password entropy measures the unpredictability and randomness of a password in <em>bits</em>. The higher the entropy, the more combinations an attacker has to guess. Every additional bit of entropy effectively doubles the difficulty of brute-forcing the password.
+                </p>
+                <p>
+                    <strong>How This Analyzer Works:</strong> Unlike basic character counters that give high scores to weak words like <code class="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded font-mono text-xs">helloworld</code>, this tool combines a <strong>Java-powered backend</strong> for structural composition with advanced heuristic analysis (<code class="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded font-mono text-xs">zxcvbn</code>). It detects dictionary words, common substitutions, email address structures, and repeating patterns to provide realistic crack times.
+                </p>
+                <p>
+                    <strong>Security & Privacy:</strong> Input validation, rate limiting, and strict security headers are enforced. Passwords are sent securely over TLS to ephemeral memory buffers for processing and are never logged or stored.
+                </p>
+            </div>
+        </section>
+
     </div>
+
+    <!-- Footer -->
+    <footer class="mt-8 text-xs text-slate-400 text-center">
+        Secure Password Entropy Analyzer &bull; Built with Flask, Java & Tailwind CSS
+    </footer>
 
     <script>
         const input = document.getElementById('passwordInput');
         const testBtn = document.getElementById('testBtn');
         const results = document.getElementById('results');
+        const errorBox = document.getElementById('errorBox');
+        const errorText = document.getElementById('errorText');
 
         async function analyzePassword() {
             const password = input.value;
+            errorBox.classList.add('hidden');
+            errorText.innerText = '';
+
             if (!password) {
                 results.classList.add('hidden');
                 return;
             }
 
-            const response = await fetch('/analyze', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password })
-            });
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
 
-            if (response.ok) {
                 const data = await response.json();
+
+                if (!response.ok) {
+                    errorText.innerText = data.error || "An unknown error occurred.";
+                    errorBox.classList.remove('hidden');
+                    results.classList.add('hidden');
+                    return;
+                }
+
                 results.classList.remove('hidden');
                 
-                // Handle Warnings / Specialized Tests
                 const warningContainer = document.getElementById('warningContainer');
                 if (data.warnings && data.warnings.length > 0) {
-                    warningContainer.innerHTML = data.warnings.map(w => `<div>${w}</div>`).join('');
+                    warningContainer.innerHTML = data.warnings.map(w => `<div class="font-medium">${w}</div>`).join('');
                     warningContainer.classList.remove('hidden');
                 } else {
                     warningContainer.classList.add('hidden');
@@ -106,22 +177,25 @@
                 document.getElementById('crackOnline').innerText = data.crackTimes.online;
                 document.getElementById('crackCpu').innerText = data.crackTimes.cpu;
                 document.getElementById('crackGpu').innerText = data.crackTimes.gpu;
+
+            } catch (err) {
+                errorText.innerText = "Network or server connection failed.";
+                errorBox.classList.remove('hidden');
+                results.classList.add('hidden');
             }
         }
 
         testBtn.addEventListener('click', analyzePassword);
         input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                analyzePassword();
-            }
+            if (e.key === 'Enter') analyzePassword();
         });
 
         function updateBadge(id, condition) {
             const el = document.getElementById(id);
             if (condition) {
-                el.className = "p-2 rounded bg-green-900/50 text-center text-green-300";
+                el.className = "p-2.5 rounded-lg text-center bg-emerald-50 text-emerald-700 border border-emerald-200 transition-colors";
             } else {
-                el.className = "p-2 rounded bg-red-900/50 text-center text-red-300";
+                el.className = "p-2.5 rounded-lg text-center bg-rose-50 text-rose-700 border border-rose-200 transition-colors";
             }
         }
     </script>
