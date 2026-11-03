@@ -5,6 +5,7 @@ from zxcvbn import zxcvbn
 import subprocess
 import os
 import math
+import re
 import traceback
 
 app = Flask(__name__)
@@ -52,7 +53,7 @@ def index():
     return render_template("index.html")
 
 @app.route("/analyze", methods=["POST"])
-@limiter.limit("10 per second") # Strict limit per IP for the analysis endpoint
+@limiter.limit("10 per second")
 def analyze():
     try:
         data = request.get_json()
@@ -61,27 +62,29 @@ def analyze():
             
         password = data["password"]
 
-if not isinstance(password, str) or len(password) > 128:
-    return jsonify({"error": "Invalid password format."}), 400
+        # Input Validation: Enforce type and length bounds
+        if not isinstance(password, str) or len(password) > 128:
+            return jsonify({"error": "Password must be a string under 128 characters."}), 400
 
-# Strip out dangerous control characters or newlines that could disrupt Java's Scanner
-password = re.sub(r'[\r\n\x00-\x1f\x7f-\x9f]', '', password)
+        # Sanitize control characters
+        password = re.sub(r'[\r\n\x00-\x1f\x7f-\x9f]', '', password)
 
         # Run Java program for basic character flags & length
+        process = subprocess.Popen(
+            ["java", "EntropyTest"],
+            cwd=BASE_DIR,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        # Pass password via stdin with a timeout guard
         try:
-    process = subprocess.Popen(
-        ["java", "EntropyTest"],
-        cwd=BASE_DIR,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-    # Force process to kill itself if it takes longer than 2 seconds
-    stdout, stderr = process.communicate(input=password + "\n", timeout=2.0)
-except subprocess.TimeoutExpired:
-    process.kill()
-    return jsonify({"error": "Processing timeout exceeded."}), 408
+            stdout, stderr = process.communicate(input=password + "\n", timeout=2.0)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            return jsonify({"error": "Processing timeout exceeded."}), 408
         
         if process.returncode != 0:
             return jsonify({"error": "Internal processing error"}), 500
@@ -97,50 +100,4 @@ except subprocess.TimeoutExpired:
         length = int(lines[6])
 
         # Smart Pattern & Dictionary Analysis (zxcvbn)
-        zx_result = zxcvbn(password)
-        
-        score = zx_result['score'] * 25
-        if score > 100: 
-            score = 100
-
-        guesses = zx_result.get('guesses', 1)
-        entropy = math.log2(guesses) if guesses > 0 else 0.0
-
-        crack_times = zx_result.get('crack_times_seconds', {})
-        formatted_crack_times = {
-            "online": format_crack_time(crack_times.get('online_throttling_100_per_hour')),
-            "cpu": format_crack_time(crack_times.get('offline_slow_hashing_1e4_per_second')),
-            "gpu": format_crack_time(crack_times.get('offline_fast_hashing_1e10_per_second'))
-        }
-
-        feedback = zx_result.get('feedback', {})
-        warnings = []
-        if feedback.get('warning'):
-            warnings.append(f"⚠️ {feedback['warning']}")
-        for suggestion in feedback.get('suggestions', []):
-            warnings.append(f"💡 {suggestion}")
-
-        result = {
-            "score": score,
-            "entropy": round(entropy, 2),
-            "hasLower": has_lower,
-            "hasUpper": has_upper,
-            "hasDigit": has_digit,
-            "hasSymbol": has_symbol,
-            "length": length,
-            "crackTimes": formatted_crack_times,
-            "warnings": warnings
-        }
-        
-        # Explicitly clear password variable from memory
-        password = None
-        return jsonify(result)
-
-    except Exception as e:
-        # Log generic error trace without outputting user password data
-        print(f"Error encountered during analysis: {str(e)}")
-        return jsonify({"error": "An internal error occurred."}), 500
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+        zx_result = zxcvbn
