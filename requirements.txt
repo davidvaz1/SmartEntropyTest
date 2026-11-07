@@ -1,3 +1,4 @@
 flask
 zxcvbn-python
 flask-limiter
+certifi>=2026.10.19
